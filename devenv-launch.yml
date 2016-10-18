@@ -1,0 +1,121 @@
+---
+- name: 'Launch ec2 instance'
+  hosts: localhost
+  connection: local
+  vars_files:
+  - vars/launch_vars.yml
+  - vars/user_vars.yml
+  roles:
+  - launch_ec2
+  post_tasks:
+  - add_host:
+      name: "{{ item }}"
+      groups: OSEv3,masters,nodes,etcd
+    with_items: "{{ groups.launched | default([]) | union(groups['tag_Name_' ~ instance_name] | default([])) }}"
+  tags: launch_openshift_devenv
+
+- name: 'Set AWS creds, ssh_config, facts'
+  hosts: localhost
+  connection: local
+  vars_files:
+  - vars/user_vars.yml
+  roles:
+  - set_awscreds_ssh_facts
+  tags: set_awscreds_ssh_facts
+
+- name: 'Setup root login'
+  hosts: OSEv3
+  vars_files:
+  - vars/user_vars.yml
+  roles:
+  - setup_root_login
+  tags: setup_root_login
+
+#- name: 'Copy any necessary files to ec2'
+#  hosts: OSEv3
+#  remote_user: ec2-user
+#  vars_files:
+#  - vars/user_vars.yml
+#  roles:
+#  - copy_files
+#  tags: copy_files
+
+- name: "RedHat Subscription Manager"
+  hosts: OSEv3
+  vars_files:
+  - vars/user_vars.yml
+  roles: 
+  - subscription_manager
+  tags: subscription_manager
+
+- name: 'Set OpenShift version'
+  hosts: OSEv3
+  gather_facts: True
+  vars_files:
+  - vars/user_vars.yml
+  roles:
+  - set_version
+  tags: set_version
+
+# Our devenv-rhel7 AMIs have /etc/profile.d/openshift.sh so we have to clear and set path/kubeconfig
+- name: 'Set KUBECONFIG PATH'
+  hosts: OSEv3
+  roles:
+  - set_path_kubeconfig
+  tags: set_path_kubeconfig
+
+# You can replace 'xip.io' with a custom DNS server
+# Configuration examples/options here:
+# https://raw.githubusercontent.com/openshift/openshift-ansible/master/inventory/byo/hosts.ose.example
+# 'openshift_image_tag' and 'openshift_pkg_version' are derived from 'openshift_version'
+#
+# openshift-ansible is a submodule in this repo.
+- include: openshift-ansible/playbooks/byo/config.yml
+  vars:
+    deployment_type: online
+    cluster_id: devenv-ocp
+    openshift_version: "{{ openshift_set_version }}"
+    openshift_master_cluster_method: native
+    openshift_node_labels: "{'region': 'us-east-1', 'type': 'infra'}"
+    openshift_scheduleable: true
+    osm_default_subdomain: "{{ ansible_ec2_public_ipv4 }}.xip.io"
+    openshift_hosted_registry_selector: 'type=infra'
+    openshift_hosted_router_selector: 'type=infra'
+    oreg_url: "registry.access.redhat.com/openshift3/ose-${component}:v{{ openshift_version }}"
+    openshift_install_examples: true
+    openshift_master_dynamic_provisioning_enabled: True
+    openshift_master_identity_providers:
+    - name: allow_all
+      kind: AllowAllPasswordIdentityProvider
+      login: true
+      challenge: true
+      mappingMethod: add
+    openshift_master_image_policy_config: {"maxImagesBulkImportedPerRepository": 3, "disableScheduledImport": true}
+    openshift_cloudprovider_aws_access_key: "{{ hostvars.localhost.AWS_ACCESS_KEY_ID }}"
+    openshift_cloudprovider_aws_secret_key: "{{ hostvars.localhost.AWS_SECRET_ACCESS_KEY }}"
+  tags: start_openshift_cluster
+
+- name: "Grant admin access"
+  hosts: OSEv3
+  roles: 
+  - grant_admin_access
+  tags: grant_admin_access
+
+- name: "Deployment example app"
+  hosts: OSEv3
+  vars_files:
+  - "{{ lookup('env', 'MY_LOCAL_PATH_HERE') }}/vars/user_vars.yml"
+  roles: 
+  - my_app_deploy
+  tags: my_app_deploy
+
+- name: "Print info"
+  hosts: OSEv3
+  vars:
+    public_dns_name: "{{ ansible_ec2_public_hostname }}"
+  vars_files:
+  - "{{ lookup('env', 'MY_LOCAL_PATH_HERE') }}/vars/deploy_vars.yml"
+  roles:
+  - print_console_debug
+  tags: print_console_debug
+

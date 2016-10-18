@@ -1,0 +1,16 @@
+---
+public_dns_name: "{{ ansible_ec2_public_hostname }}"
+private_dns_name: "{{ ansible_ec2_hostname }}"
+ip_address: "{{ ansible_ec2_local_ipv4 }}"
+public_ip_address: "{{ ansible.facter_ec2_public_ipv4 }}"
+
+my_app_hostname: "my-app-my-project.{{ hostvars[groups['OSEv3'][0]].facter_ec2_public_ipv4 }}.xip.io"
+AWS_ACCESS_KEY_ID: "{{ hostvars.localhost.AWS_ACCESS_KEY_ID }}"
+AWS_SECRET_ACCESS_KEY: "{{ hostvars.localhost.AWS_SECRET_ACCESS_KEY }}"
+CA: /etc/origin/master
+path_to_this_playbook: "{{ lookup('env','MY_LOCAL_PATH_HERE') }}"
+
+openshift_templates:
+- a-template.json
+- another-template.json
+

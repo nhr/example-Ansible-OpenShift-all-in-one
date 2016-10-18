@@ -1,0 +1,12 @@
+---
+# These should be setup according to your AWS account.  You need to be able to launch 
+# ec2 instances that enable dns_hostnames and that you can ssh into from your local machine.
+key_name: yourawskeyname
+ami_id: ami-2051294a # any rhel7 that you have root access 
+aws_region: us-east-1
+instance_type: t2.large
+vpc_subnet_id: subnet-xxxxxxxx # edit to your own 
+security_groups: [ 'sg-xxxxxx', 'sg-yyyyyy', 'sg-zzzzzz' ] # edit to your own
+instance_name: "{{ lookup('env', 'INSTANCE_NAME') | default(lookup('env', 'LOGNAME') ~ '_ocp_devenv', true) }}"
+instance_tags:
+    Name: "{{ instance_name }}"

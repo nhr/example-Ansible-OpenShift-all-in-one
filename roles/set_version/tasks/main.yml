@@ -1,0 +1,22 @@
+---
+- name: Set the OpenShift version
+  shell:
+    cmd: "yum info atomic-openshift --show-duplicates | grep Version | awk '{print $NF}' | tail -1"
+  register: openshift_find_version
+
+- set_fact:
+    openshift_set_version: "{{ item }}"
+  with_items: "{{ openshift_find_version.stdout }}"
+
+- name: Gather ec2 facts
+  action: ec2_facts
+
+- debug: msg="PUBLIC IP- {{ ansible_ec2_public_ipv4 }}"
+
+- set_fact:
+    openshift_set_image_tag: "v{{ openshift_set_version }}"
+
+- name: Install atomic-openshift
+  yum: 
+    name: "atomic-openshift-{{ openshift_set_version }}"
+    state: present

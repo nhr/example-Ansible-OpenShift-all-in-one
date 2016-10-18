@@ -1,0 +1,11 @@
+---
+- name: Set PATH
+  lineinfile: dest=/etc/profile.d/openshift.sh state=present create=yes regexp='^(.*)PATH' line='export PATH=/bin:/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin'
+
+- name: Set KUBECONFIG
+  lineinfile: dest=/etc/profile.d/openshift.sh state=present create=yes regexp='^(.*)KUBECONFIG' line='export KUBECONFIG=/etc/origin/master/admin.kubeconfig'
+
+- name: Export KUBECONFIG
+  shell:
+    cmd: 'export KUBECONFIG=/etc/origin/master/admin.kubeconfig'
+

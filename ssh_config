@@ -1,0 +1,8 @@
+Host *.amazonaws.com
+  User ec2-user
+  StrictHostKeyChecking no
+  PasswordAuthentication no
+  UserKnownHostsFile ~/.ssh/aws_known_hosts
+  IdentityFile ~/.ssh/libra.pem
+  ForwardAgent yes
+

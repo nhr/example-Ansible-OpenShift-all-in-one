@@ -1,0 +1,4 @@
+---
+- name: edit /etc/ssh/sshd_config
+  lineinfile: dest=/etc/ssh/sshd_config state=present regexp='^(.*)PermitRootLogin' line='PermitRootLogin yes'
+  become: yes
